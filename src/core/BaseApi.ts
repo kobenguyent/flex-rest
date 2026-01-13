@@ -47,7 +47,9 @@ export default class BaseApi {
     const finalHeaders = this.buildHeaders(headers)
 
     const res = I
-      ? await I[`send${method}`](url, payload, finalHeaders)
+      ? payload !== undefined
+        ? await I[`send${method}`](url, payload, finalHeaders)
+        : await I[`send${method}`](url, finalHeaders)
       : await axios.request({
           method: method.replace('Request', '').toLowerCase(),
           url,
