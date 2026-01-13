@@ -31,7 +31,7 @@ export default class BaseApi {
     }
   }
 
-  private headers(extra?: object) {
+  private buildHeaders(extra?: object) {
     return {
       ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       ...extra
@@ -44,7 +44,7 @@ export default class BaseApi {
     payload?: any,
     headers?: object
   ): Promise<HttpResponse<T>> {
-    const finalHeaders = this.headers(headers)
+    const finalHeaders = this.buildHeaders(headers)
 
     const res = I
       ? await I[`send${method}`](url, payload, finalHeaders)

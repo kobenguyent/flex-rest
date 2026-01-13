@@ -1,6 +1,6 @@
 {
   "name": "flex-rest",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Bridge between Axios, CodeceptJS, and Playwright REST APIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
