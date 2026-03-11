@@ -6,3 +6,5 @@ output/
 .env
 *.tgz
 .idea
+docs/.vitepress/cache
+docs/.vitepress/dist
