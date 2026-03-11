@@ -33,8 +33,34 @@ get<T>(url: string, headers?: object): Promise<HttpResponse<T>>
 post<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
 ```
 
-::: info
-`put`, `delete`, and `head` methods can be added following the same wrapping pattern. Currently only `get` and `post` are implemented.
+### put
+
+```ts
+put<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
+```
+
+### patch
+
+```ts
+patch<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
+```
+
+### delete
+
+```ts
+delete<T>(url: string, headers?: object): Promise<HttpResponse<T>>
+```
+
+### head
+
+```ts
+head<T>(url: string, headers?: object): Promise<HttpResponse<T>>
+```
+
+Returns an empty data object since HEAD responses have no body.
+
+::: tip Safe JSON Parsing
+`PlaywrightApi` uses safe JSON parsing — non-JSON or empty responses return `null` instead of throwing.
 :::
 
 ## Example

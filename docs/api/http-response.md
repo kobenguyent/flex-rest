@@ -46,6 +46,7 @@ interface HttpClient {
   get<T>(url: string, headers?: object): Promise<HttpResponse<T>>
   post<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
   put<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
+  patch<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
   delete<T>(url: string, headers?: object): Promise<HttpResponse<T>>
   head<T>(url: string, headers?: object): Promise<HttpResponse<T>>
 }

@@ -42,14 +42,20 @@ import BaseApi from 'flex-rest';
 
 const api = new BaseApi({
   token: 'your-bearer-token',
+  baseUrl: 'https://api.example.com',
+  timeout: 10000,
+  retry: { count: 3, delay: 1000 },
   allowInsecureSSL: false,
-  logFile: 'output/api_logs.txt'
+  logFile: 'output/api_logs.txt',
+  onRequest: (method, url) => console.log(`→ ${method} ${url}`),
+  onResponse: (method, url, res) => console.log(`← ${res.status} ${url}`)
 });
 
-const users = await api.get<User[]>('https://api.example.com/users');
-const created = await api.post<User>('https://api.example.com/users', { name: 'John' });
-await api.put('https://api.example.com/users/1', { name: 'Jane' });
-await api.delete('https://api.example.com/users/1');
+const users = await api.get<User[]>('/users');
+const created = await api.post<User>('/users', { name: 'John' });
+await api.put('/users/1', { name: 'Jane' });
+await api.patch('/users/1', { name: 'Jane Doe' });
+await api.delete('/users/1');
 ```
 
 ### PlaywrightApi
@@ -65,6 +71,10 @@ const api = new PlaywrightApi(context, 'your-bearer-token');
 
 const users = await api.get<User[]>('https://api.example.com/users');
 const created = await api.post<User>('https://api.example.com/users', { name: 'John' });
+await api.put('https://api.example.com/users/1', { name: 'Jane' });
+await api.patch('https://api.example.com/users/1', { name: 'Jane Doe' });
+await api.delete('https://api.example.com/users/1');
+const head = await api.head('https://api.example.com/users');
 ```
 
 ### SupertestApi
@@ -81,6 +91,7 @@ const api = new SupertestApi(supertest(app), 'your-bearer-token');
 const users = await api.get<User[]>('/users');
 const created = await api.post<User>('/users', { name: 'John' });
 await api.put('/users/1', { name: 'Jane' });
+await api.patch('/users/1', { name: 'Jane Doe' });
 await api.delete('/users/1');
 ```
 
@@ -112,26 +123,33 @@ interface User {
 }
 
 class UserApi extends BaseApi {
-  private baseUrl = 'https://api.example.com';
-
   constructor(token: string) {
-    super({ token, logFile: 'output/user_api.txt' });
+    super({
+      token,
+      baseUrl: 'https://api.example.com',
+      timeout: 10000,
+      logFile: 'output/user_api.txt'
+    });
   }
 
   async getUsers() {
-    return this.get<User[]>(`${this.baseUrl}/users`);
+    return this.get<User[]>('/users');
   }
 
   async createUser(data: { name: string; email: string }) {
-    return this.post<User>(`${this.baseUrl}/users`, data);
+    return this.post<User>('/users', data);
   }
 
   async updateUser(id: number, data: Partial<User>) {
-    return this.put<User>(`${this.baseUrl}/users/${id}`, data);
+    return this.put<User>(`/users/${id}`, data);
+  }
+
+  async patchUser(id: number, data: Partial<User>) {
+    return this.patch<User>(`/users/${id}`, data);
   }
 
   async deleteUser(id: number) {
-    return this.delete(`${this.baseUrl}/users/${id}`);
+    return this.delete(`/users/${id}`);
   }
 }
 
@@ -154,6 +172,11 @@ const { data: users } = await api.getUsers();
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `token` | `string` | `undefined` | Bearer token for authentication |
+| `baseUrl` | `string` | `''` | Base URL prepended to relative paths |
+| `timeout` | `number` | `undefined` | Request timeout in milliseconds |
+| `retry` | `{ count: number; delay?: number }` | `undefined` | Retry failed requests with backoff |
+| `onRequest` | `RequestHook` | `undefined` | Hook called before each request |
+| `onResponse` | `ResponseHook` | `undefined` | Hook called after each response |
 | `allowInsecureSSL` | `boolean` | `false` | Accept self-signed certificates |
 | `logFile` | `string` | `undefined` | File path for request/response logging |
 
@@ -165,6 +188,7 @@ All integrations support:
 get<T>(url: string, headers?: object): Promise<HttpResponse<T>>
 post<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
 put<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
+patch<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
 delete<T>(url: string, headers?: object): Promise<HttpResponse<T>>
 head<T>(url: string, headers?: object): Promise<HttpResponse<T>>
 ```
@@ -176,6 +200,24 @@ interface HttpResponse<T = any> {
   status: number;
   data: T;
   headers?: Record<string, any>;
+}
+```
+
+### Error Handling — FlexRestError
+
+Any 5xx response automatically throws a `FlexRestError` with status, URL, and response data:
+
+```typescript
+import { FlexRestError } from 'flex-rest';
+
+try {
+  await api.get('/unstable-endpoint');
+} catch (error) {
+  if (error instanceof FlexRestError) {
+    console.log(error.status); // 502
+    console.log(error.url);    // https://api.example.com/unstable-endpoint
+    console.log(error.data);   // { error: 'Bad Gateway' }
+  }
 }
 ```
 

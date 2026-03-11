@@ -106,10 +106,11 @@ test('list users', async ({ api }) => {
 |--------|-----------|
 | `get` | ✅ |
 | `post` | ✅ |
-| `put` | ❌ (not yet) |
-| `delete` | ❌ (not yet) |
-| `head` | ❌ (not yet) |
+| `put` | ✅ |
+| `patch` | ✅ |
+| `delete` | ✅ |
+| `head` | ✅ |
 
-::: tip
-`PlaywrightApi` currently supports `get` and `post`. Full method support can be added following the same pattern.
+::: tip Safe JSON Parsing
+`PlaywrightApi` uses safe JSON parsing — non-JSON or empty response bodies return `null` instead of throwing an error.
 :::
