@@ -28,10 +28,12 @@ The simplest way to get started — no extra dependencies needed:
 import BaseApi from 'flex-rest'
 
 const api = new BaseApi({
-  token: 'your-bearer-token'
+  token: 'your-bearer-token',
+  baseUrl: 'https://api.example.com',
+  timeout: 10000
 })
 
-const users = await api.get<User[]>('https://api.example.com/users')
+const users = await api.get<User[]>('/users')
 console.log(users.status) // 200
 console.log(users.data)   // User[]
 ```
@@ -87,26 +89,36 @@ interface User {
 }
 
 class UserApi extends BaseApi {
-  private baseUrl = 'https://api.example.com'
+  constructor(token: string) {
+    super({
+      token,
+      baseUrl: 'https://api.example.com',
+      timeout: 10000
+    })
+  }
 
   async getUsers() {
-    return this.get<User[]>(`${this.baseUrl}/users`)
+    return this.get<User[]>('/users')
   }
 
   async getUser(id: number) {
-    return this.get<User>(`${this.baseUrl}/users/${id}`)
+    return this.get<User>(`/users/${id}`)
   }
 
   async createUser(data: { name: string; email: string }) {
-    return this.post<User>(`${this.baseUrl}/users`, data)
+    return this.post<User>('/users', data)
   }
 
   async updateUser(id: number, data: Partial<User>) {
-    return this.put<User>(`${this.baseUrl}/users/${id}`, data)
+    return this.put<User>(`/users/${id}`, data)
+  }
+
+  async patchUser(id: number, data: Partial<User>) {
+    return this.patch<User>(`/users/${id}`, data)
   }
 
   async deleteUser(id: number) {
-    return this.delete(`${this.baseUrl}/users/${id}`)
+    return this.delete(`/users/${id}`)
   }
 }
 ```

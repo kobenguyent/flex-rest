@@ -11,6 +11,9 @@ import BaseApi from 'flex-rest'
 
 const api = new BaseApi({
   token: 'your-bearer-token',
+  baseUrl: 'https://api.example.com',
+  timeout: 10000,
+  retry: { count: 3, delay: 1000 },
   allowInsecureSSL: false,
   logFile: 'output/api_logs.txt'
 })
@@ -21,6 +24,11 @@ const api = new BaseApi({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `token` | `string` | `undefined` | Bearer token for authentication |
+| `baseUrl` | `string` | `''` | Prepended to relative URL paths |
+| `timeout` | `number` | `undefined` | Request timeout in milliseconds |
+| `retry` | `{ count, delay? }` | `undefined` | Retry failed requests (delay defaults to 1 000 ms) |
+| `onRequest` | `RequestHook` | `undefined` | Hook called before each request |
+| `onResponse` | `ResponseHook` | `undefined` | Hook called after each response |
 | `allowInsecureSSL` | `boolean` | `false` | Accept self-signed SSL certificates |
 | `logFile` | `string` | `undefined` | Path to write request/response logs |
 
@@ -28,22 +36,25 @@ const api = new BaseApi({
 
 ```ts
 // GET
-const users = await api.get<User[]>('https://api.example.com/users')
+const users = await api.get<User[]>('/users')
 
 // POST
-const newUser = await api.post<User>('https://api.example.com/users', {
+const newUser = await api.post<User>('/users', {
   name: 'John',
   email: 'john@example.com'
 })
 
 // PUT
-await api.put('https://api.example.com/users/1', { name: 'Jane' })
+await api.put('/users/1', { name: 'Jane' })
+
+// PATCH
+await api.patch('/users/1', { name: 'Jane Doe' })
 
 // DELETE
-await api.delete('https://api.example.com/users/1')
+await api.delete('/users/1')
 
 // HEAD
-const head = await api.head('https://api.example.com/users')
+const head = await api.head('/users')
 ```
 
 ## Extending BaseApi
@@ -58,31 +69,37 @@ interface Product {
 }
 
 class ProductApi extends BaseApi {
-  private baseUrl: string
-
   constructor(baseUrl: string, token: string) {
-    super({ token, logFile: 'output/products.txt' })
-    this.baseUrl = baseUrl
+    super({
+      token,
+      baseUrl,
+      timeout: 10000,
+      logFile: 'output/products.txt'
+    })
   }
 
   async list() {
-    return this.get<Product[]>(`${this.baseUrl}/products`)
+    return this.get<Product[]>('/products')
   }
 
   async getById(id: number) {
-    return this.get<Product>(`${this.baseUrl}/products/${id}`)
+    return this.get<Product>(`/products/${id}`)
   }
 
   async create(data: Omit<Product, 'id'>) {
-    return this.post<Product>(`${this.baseUrl}/products`, data)
+    return this.post<Product>('/products', data)
   }
 
   async update(id: number, data: Partial<Product>) {
-    return this.put<Product>(`${this.baseUrl}/products/${id}`, data)
+    return this.put<Product>(`/products/${id}`, data)
+  }
+
+  async patch(id: number, data: Partial<Product>) {
+    return this.patch<Product>(`/products/${id}`, data)
   }
 
   async remove(id: number) {
-    return this.delete(`${this.baseUrl}/products/${id}`)
+    return this.delete(`/products/${id}`)
   }
 }
 

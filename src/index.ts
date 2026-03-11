@@ -1,4 +1,6 @@
 export { default, default as BaseApi } from './core/BaseApi'
+export type { BaseApiOptions } from './core/BaseApi'
 export { PlaywrightApi } from './playwright/PlaywrightApi'
 export { SupertestApi } from './supertest/SupertestApi'
+export { FlexRestError } from './core/errors'
 export * from './core/HttpClient'

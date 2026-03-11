@@ -45,6 +45,9 @@ const user = await api.post<User>('/users', {
 // PUT
 await api.put('/users/1', { name: 'Jane' })
 
+// PATCH
+await api.patch('/users/1', { name: 'Jane Doe' })
+
 // DELETE
 await api.delete('/users/1')
 

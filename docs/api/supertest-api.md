@@ -43,6 +43,14 @@ put<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
 
 Sends `payload` via `.send()`. If `payload` is `undefined`, no body is sent.
 
+### patch
+
+```ts
+patch<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
+```
+
+Sends `payload` via `.send()`. If `payload` is `undefined`, no body is sent.
+
 ### delete
 
 ```ts
@@ -81,5 +89,6 @@ const api = new SupertestApi(supertest(app), 'test-token')
 const users = await api.get<User[]>('/users')
 const created = await api.post<User>('/users', { name: 'John' })
 await api.put('/users/1', { name: 'Jane' })
+await api.patch('/users/1', { name: 'Jane Doe' })
 await api.delete('/users/1')
 ```

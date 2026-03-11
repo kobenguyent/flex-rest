@@ -1,19 +1,35 @@
 # Error Handling
 
-flex-rest provides automatic server error detection across all integrations.
+flex-rest provides automatic server error detection and a custom `FlexRestError` class across all integrations.
 
-## Automatic Server Error Throws
+## FlexRestError
 
-Any response with a status code **≥ 500** automatically throws an error:
+Any response with status ≥ 500 throws a `FlexRestError` with structured properties:
 
 ```ts
+import { FlexRestError } from 'flex-rest'
+
 try {
   const res = await api.get('https://api.example.com/unstable-endpoint')
 } catch (error) {
-  // Error: Server error 502 received from https://api.example.com/unstable-endpoint
-  console.error(error.message)
+  if (error instanceof FlexRestError) {
+    console.log(error.status) // 502
+    console.log(error.url)    // https://api.example.com/unstable-endpoint
+    console.log(error.data)   // { error: 'Bad Gateway' }
+    console.log(error.name)   // 'FlexRestError'
+  }
 }
 ```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `status` | `number` | HTTP status code (e.g., 500, 502, 503) |
+| `url` | `string` | The URL that returned the error |
+| `data` | `any` | Response body (if available) |
+| `message` | `string` | `"Server error {status} received from {url}"` |
+| `name` | `string` | Always `'FlexRestError'` |
 
 This behavior is consistent across `BaseApi`, `PlaywrightApi`, and `SupertestApi`.
 
@@ -46,27 +62,19 @@ class RobustApi extends BaseApi {
 }
 ```
 
-## Retry Pattern
+## Built-in Retry
 
-Combine with a retry utility for flaky endpoints:
+`BaseApi` has built-in retry support — no external utility needed:
 
 ```ts
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  retries = 3,
-  delay = 1000
-): Promise<T> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn()
-    } catch (error) {
-      if (i === retries - 1) throw error
-      await new Promise(r => setTimeout(r, delay))
-    }
-  }
-  throw new Error('Unreachable')
-}
+const api = new BaseApi({
+  retry: { count: 3, delay: 1000 } // retry up to 3 times, 1s between attempts
+})
 
-// Usage
-const res = await withRetry(() => api.get('/flaky-endpoint'))
+// Automatically retries on network errors or exceptions
+const res = await api.get('/flaky-endpoint')
 ```
+
+::: tip
+Retry kicks in on any thrown error (network failures, timeouts, etc.). Server errors (5xx) throw `FlexRestError` which also triggers retries.
+:::

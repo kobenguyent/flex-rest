@@ -1,8 +1,8 @@
 import type { Test, SuperTest } from 'supertest'
-import { HttpResponse } from '../core/HttpClient'
+import { HttpClient, HttpResponse } from '../core/HttpClient'
 import { throwOnServerError } from '../core/errors'
 
-export class SupertestApi {
+export class SupertestApi implements HttpClient {
   constructor(
     private agent: SuperTest<Test>,
     private token?: string
@@ -22,7 +22,7 @@ export class SupertestApi {
 
   async get<T>(url: string, headers?: object): Promise<HttpResponse<T>> {
     const res = await this.applyHeaders(this.agent.get(url), headers)
-    throwOnServerError(res, url)
+    throwOnServerError(res, url, res.body)
     return { status: res.status, data: res.body, headers: res.headers }
   }
 
@@ -32,7 +32,7 @@ export class SupertestApi {
       req = req.send(payload)
     }
     const res = await this.applyHeaders(req, headers)
-    throwOnServerError(res, url)
+    throwOnServerError(res, url, res.body)
     return { status: res.status, data: res.body, headers: res.headers }
   }
 
@@ -42,13 +42,23 @@ export class SupertestApi {
       req = req.send(payload)
     }
     const res = await this.applyHeaders(req, headers)
-    throwOnServerError(res, url)
+    throwOnServerError(res, url, res.body)
+    return { status: res.status, data: res.body, headers: res.headers }
+  }
+
+  async patch<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>> {
+    let req = this.agent.patch(url)
+    if (payload !== undefined) {
+      req = req.send(payload)
+    }
+    const res = await this.applyHeaders(req, headers)
+    throwOnServerError(res, url, res.body)
     return { status: res.status, data: res.body, headers: res.headers }
   }
 
   async delete<T>(url: string, headers?: object): Promise<HttpResponse<T>> {
     const res = await this.applyHeaders(this.agent.delete(url), headers)
-    throwOnServerError(res, url)
+    throwOnServerError(res, url, res.body)
     return { status: res.status, data: res.body, headers: res.headers }
   }
 
