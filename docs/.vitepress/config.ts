@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
+  base: '/flex-rest/',
   title: 'flex-rest',
   description: 'Unified REST API client for Axios, CodeceptJS, Playwright & Supertest',
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }]
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/flex-rest/logo.svg' }]
   ],
   themeConfig: {
     logo: '/logo.svg',
