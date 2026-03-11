@@ -1,6 +1,29 @@
 # flex-rest
 
-Bridge between Axios, CodeceptJS, and Playwright REST APIs with a unified interface.
+Unified REST API client for **Axios**, **CodeceptJS**, **Playwright**, and **Supertest** — write your API layer once, test everywhere.
+
+[![npm version](https://img.shields.io/npm/v/flex-rest.svg)](https://www.npmjs.com/package/flex-rest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Why flex-rest?
+
+Every testing framework has its own HTTP interface with a different response shape, header handling, and patterns. flex-rest wraps each one behind a **unified `HttpResponse<T>`** so your API layer, assertions, and helpers stay the same regardless of the framework.
+
+```
+┌─────────────────────────────────────────────┐
+│              Your API Layer                  │
+│   getUsers(), createOrder(), authenticate() │
+└──────────────────┬──────────────────────────┘
+                   │
+         ┌─────────┴─────────┐
+         │   HttpResponse<T> │  ← unified contract
+         └─────────┬─────────┘
+                   │
+    ┌──────────┬───┴───┬────────────┐
+    │          │       │            │
+ BaseApi  Playwright Supertest  CodeceptJS
+ (Axios)     Api       Api     (auto-detected)
+```
 
 ## Installation
 
@@ -8,9 +31,11 @@ Bridge between Axios, CodeceptJS, and Playwright REST APIs with a unified interf
 npm install flex-rest
 ```
 
-## Usage
+## Quick Start
 
 ### BaseApi (Axios)
+
+The default integration — works standalone or auto-detects CodeceptJS at runtime:
 
 ```typescript
 import BaseApi from 'flex-rest';
@@ -18,16 +43,64 @@ import BaseApi from 'flex-rest';
 const api = new BaseApi({
   token: 'your-bearer-token',
   allowInsecureSSL: false,
-  logFile: 'output/api_logs.txt' // optional
+  logFile: 'output/api_logs.txt'
 });
 
-const response = await api.get('https://api.example.com/users');
-const user = await api.post('https://api.example.com/users', { name: 'John' });
+const users = await api.get<User[]>('https://api.example.com/users');
+const created = await api.post<User>('https://api.example.com/users', { name: 'John' });
 await api.put('https://api.example.com/users/1', { name: 'Jane' });
 await api.delete('https://api.example.com/users/1');
 ```
 
-### Extending BaseApi
+### PlaywrightApi
+
+Wraps Playwright's `APIRequestContext` for API testing alongside browser tests:
+
+```typescript
+import { PlaywrightApi } from 'flex-rest';
+import { request } from '@playwright/test';
+
+const context = await request.newContext();
+const api = new PlaywrightApi(context, 'your-bearer-token');
+
+const users = await api.get<User[]>('https://api.example.com/users');
+const created = await api.post<User>('https://api.example.com/users', { name: 'John' });
+```
+
+### SupertestApi
+
+Wraps [Supertest](https://github.com/ladjs/supertest) for testing Express/Koa/Fastify apps in-process — no running server needed:
+
+```typescript
+import { SupertestApi } from 'flex-rest';
+import supertest from 'supertest';
+import app from './app';
+
+const api = new SupertestApi(supertest(app), 'your-bearer-token');
+
+const users = await api.get<User[]>('/users');
+const created = await api.post<User>('/users', { name: 'John' });
+await api.put('/users/1', { name: 'Jane' });
+await api.delete('/users/1');
+```
+
+### CodeceptJS
+
+BaseApi automatically detects the CodeceptJS context — no additional setup needed:
+
+```typescript
+import BaseApi from 'flex-rest';
+
+// In your CodeceptJS test — uses I.sendGetRequest() automatically
+Scenario('test API', async ({ I }) => {
+  const api = new BaseApi({ token: 'test-token' });
+  const response = await api.get('https://api.example.com/users');
+});
+```
+
+## Extending BaseApi
+
+Build typed, reusable API classes:
 
 ```typescript
 import BaseApi from 'flex-rest';
@@ -41,11 +114,8 @@ interface User {
 class UserApi extends BaseApi {
   private baseUrl = 'https://api.example.com';
 
-  constructor() {
-    super({ 
-      token: 'your-token',
-      logFile: 'output/user_api.txt' // separate log file per service
-    });
+  constructor(token: string) {
+    super({ token, logFile: 'output/user_api.txt' });
   }
 
   async getUsers() {
@@ -65,74 +135,51 @@ class UserApi extends BaseApi {
   }
 }
 
-const api = new UserApi();
-const users = await api.getUsers();
+const api = new UserApi('your-token');
+const { data: users } = await api.getUsers();
 ```
 
-### CodeceptJS Integration
+## API Reference
 
-BaseApi automatically detects CodeceptJS context. No additional setup needed:
+### Integrations
 
-```typescript
-import BaseApi from 'flex-rest';
-
-class MyApi extends BaseApi {
-  async getUsers() {
-    return this.get('https://api.example.com/users');
-  }
-}
-
-// In your CodeceptJS test
-Scenario('test API', async ({ I }) => {
-  const api = new MyApi({ token: 'test-token' });
-  const response = await api.getUsers();
-  // Uses I.sendGetRequest automatically
-});
-```
-
-### PlaywrightApi
-
-```typescript
-import { PlaywrightApi } from 'flex-rest';
-import { request } from '@playwright/test';
-
-const apiContext = await request.newContext();
-const api = new PlaywrightApi(apiContext, 'your-bearer-token');
-
-const response = await api.get('https://api.example.com/users');
-const user = await api.post('https://api.example.com/users', { name: 'John' });
-```
-
-## API
+| Class | Wraps | Install |
+|-------|-------|---------|
+| `BaseApi` | Axios / CodeceptJS | Included |
+| `PlaywrightApi` | `@playwright/test` | `npm i -D @playwright/test` |
+| `SupertestApi` | `supertest` | `npm i -D supertest @types/supertest` |
 
 ### BaseApi Options
 
-- `token?: string` - Bearer token for authentication
-- `allowInsecureSSL?: boolean` - Allow self-signed certificates
-- `logFile?: string` - Custom log file path (default: `output/api_logs.txt`)
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `token` | `string` | `undefined` | Bearer token for authentication |
+| `allowInsecureSSL` | `boolean` | `false` | Accept self-signed certificates |
+| `logFile` | `string` | `undefined` | File path for request/response logging |
 
-### Methods
+### HTTP Methods
 
-All APIs support:
-- `get<T>(url: string, headers?: object): Promise<HttpResponse<T>>`
-- `post<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>`
-- `put<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>`
-- `delete<T>(url: string, headers?: object): Promise<HttpResponse<T>>`
-- `head<T>(url: string, headers?: object): Promise<HttpResponse<T>>`
+All integrations support:
+
+```typescript
+get<T>(url: string, headers?: object): Promise<HttpResponse<T>>
+post<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
+put<T>(url: string, payload?: any, headers?: object): Promise<HttpResponse<T>>
+delete<T>(url: string, headers?: object): Promise<HttpResponse<T>>
+head<T>(url: string, headers?: object): Promise<HttpResponse<T>>
+```
 
 ### Response Format
 
 ```typescript
-interface HttpResponse<T> {
+interface HttpResponse<T = any> {
   status: number;
   data: T;
   headers?: Record<string, any>;
 }
 ```
 
-### TypeScript Support
-
-Use generics to type your responses:
+### TypeScript Generics
 
 ```typescript
 interface TokenResponse {
@@ -140,8 +187,18 @@ interface TokenResponse {
   expires_in: number;
 }
 
-const response = await api.post<TokenResponse>('/auth/token', credentials);
-const token = response.data.access_token; // fully typed
+const res = await api.post<TokenResponse>('/auth/token', credentials);
+const token = res.data.access_token; // fully typed
+```
+
+## Documentation
+
+Full documentation is available at the [VitePress docs site](https://kobenguyent.github.io/flex-rest/):
+
+```bash
+npm run docs:dev      # Start dev server
+npm run docs:build    # Build static site
+npm run docs:preview  # Preview built site
 ```
 
 ## Development
