@@ -105,7 +105,8 @@ export default class BaseApi implements HttpClient {
           data: payload,
           headers: finalHeaders,
           httpsAgent: this.httpsAgent,
-          timeout: this.timeout
+          timeout: this.timeout,
+          validateStatus: () => true
         })
 
     logRequest(method, fullUrl, finalHeaders, payload, res, this.logFile)
